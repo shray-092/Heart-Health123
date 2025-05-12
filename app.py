@@ -5,7 +5,7 @@ import random
 import os
 import numpy as np
 
-app = Flask(__name__, static_folder='static')
+# app = Flask(__name__, static_folder='static')
 
 # Load the trained model and data
 heart_disease_model = joblib.load('heart_disease_model.sav')
