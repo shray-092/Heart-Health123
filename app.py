@@ -1,10 +1,11 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template
 import pandas as pd
 import joblib
 import random
 import os
+import numpy as np
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Load the trained model and data
 heart_disease_model = joblib.load('heart_disease_model.sav')
@@ -13,139 +14,115 @@ symptoms_data = pd.read_csv('symptoms.csv')
 
 # Exercise options
 exercises = [
-    "Brisk walking", "Cycling", "Swimming", "Running", "Dancing", "Yoga", "Tai chi",
-    "Pilates", "Jumping rope", "Rowing", "Hiking", "Strength training", "Circuit training",
-    "Aerobic classes", "Kickboxing", "Zumba", "Rock climbing", "Squats", "Push-ups", "Sit-ups"
+    "Brisk walking", "Cycling", "Swimming", "Running", "Dancing", 
+    "Yoga", "Tai chi", "Pilates", "Jumping rope", "Rowing",
+    "Hiking", "Strength training", "Circuit training", "Aerobic classes",
+    "Kickboxing", "Zumba", "Rock climbing", "Squats", "Push-ups", "Sit-ups"
 ]
 
-# Function to generate personalized health recommendations
 def generate_recommendations(age, sex, cholesterol, blood_pressure, diabetes, exercise, diet):
     recommendations = []
-
-    # Age-related recommendations
+    
+    # Basic health recommendations
+    recommendations.append("Get regular check-ups with your healthcare provider.")
+    recommendations.append("Aim for 7-9 hours of quality sleep each night.")
+    
+    # Age-specific
     if age > 50:
-        recommendations.append("Consider regular screenings for heart disease due to increased risk with age.")
+        recommendations.append("Consider more frequent heart health screenings due to age.")
+    
+    # Gender-specific
     if sex == 'Male':
-        recommendations.append("Men are at higher risk of heart disease; maintain a healthy lifestyle.")
+        recommendations.append("Men should pay special attention to heart health indicators.")
+    else:
+        recommendations.append("Women should be aware of unique heart disease risk factors.")
+    
+    # Cholesterol
     if cholesterol > 200:
-        recommendations.append("Monitor cholesterol levels regularly and follow medical advice for management.")
-    if blood_pressure > 120:
-        recommendations.append("Keep blood pressure in check through diet, exercise, and medication if needed.")
+        recommendations.append(f"Your cholesterol level of {cholesterol} is elevated. Consider dietary changes.")
+    
+    # Blood pressure
+    if blood_pressure > 130:
+        recommendations.append(f"Your blood pressure of {blood_pressure} is elevated. Monitor regularly.")
+    
+    # Diabetes
     if diabetes == 'Yes':
-        recommendations.append("Manage diabetes effectively to reduce the risk of cardiovascular complications.")
+        recommendations.append("Careful diabetes management is crucial for heart health.")
+    
+    # Exercise
     if exercise == 'No':
-        recommendations.append("Regular exercise is important for heart health; try to incorporate physical activity into your routine.")
+        rec_exercises = random.sample(exercises, 3)
+        recommendations.append("Try incorporating exercise into your routine, such as:")
+        recommendations.extend([f"- {ex}" for ex in rec_exercises])
+    
+    # Diet
     if diet == 'Poor':
-        recommendations.append("A healthy diet is crucial for preventing heart disease; consider reducing intake of processed foods and sugar.")
-
-    # Diet-related suggestions
-    recommendations.append("Start by making small changes to your diet, such as swapping out sugary drinks for water or adding more vegetables to your meals.")
-    if cholesterol > 200:
-        recommendations.append("Choose heart-healthy fats like those found in avocados, nuts, and olive oil instead of saturated or trans fats.")
-    if blood_pressure > 120:
-        recommendations.append("Incorporate more potassium-rich foods like bananas, sweet potatoes, and leafy greens into your diet to help lower blood pressure.")
-    if diabetes == 'Yes':
-        recommendations.append("Focus on portion control and carbohydrate counting to manage blood sugar levels effectively, and consider meeting with a certified diabetes educator for personalized guidance.")
-    recommendations.append("Include more fiber-rich foods in your diet such as whole grains, legumes, fruits, and vegetables to support digestive health and lower the risk of heart disease.")
-    recommendations.append("Opt for lean protein sources like poultry, fish, tofu, and beans instead of processed and red meats, which can help reduce the risk of heart disease.")
-    recommendations.append("Incorporate foods rich in antioxidants such as berries, leafy greens, and dark chocolate into your diet to help protect against oxidative stress and inflammation.")
-    recommendations.append("Include foods high in omega-3 fatty acids such as flaxseeds, chia seeds, and walnuts, which can help reduce inflammation and lower the risk of heart disease.")
-    recommendations.append("Swap out refined grains for whole grains whenever possible, such as choosing whole wheat bread instead of white bread and brown rice instead of white rice.")
-    recommendations.append("Experiment with different herbs and spices to add flavor to your meals without relying on excess salt, which can contribute to high blood pressure.")
-
-    # Age-related activity suggestions
-    if age >= 60:
-        recommendations.append("Consider joining a local walking group or fitness class for seniors to stay active and socialize with others in your age group.")
-
-    # Gender-specific recommendations
-    if sex == 'Male':
-        recommendations.append("Stay connected with friends and family members for emotional support, and don't hesitate to reach out if you need help or someone to talk to.")
-    elif sex == 'Female':
-        recommendations.append("Take time for yourself and prioritize self-care activities such as journaling, meditation, or enjoying a warm bath.")
-
-    # Additional health suggestions
-    if cholesterol > 220:
-        recommendations.append("Work with a dietitian to develop personalized meal plans and recipes that meet your nutritional needs and support heart health.")
-    if blood_pressure > 140:
-        recommendations.append("Explore alternative therapies such as acupuncture, massage therapy, or biofeedback to help manage stress and lower blood pressure naturally.")
-    if diabetes == 'Yes':
-        recommendations.append("Stay up-to-date with the latest diabetes research and treatment options, and advocate for yourself to ensure you're receiving the best possible care.")
-    if exercise == 'Yes' and diet == 'Fair':
-        recommendations.append("Continue to prioritize regular exercise and a balanced diet, as these are essential components of heart disease prevention and management.")
-
-    # Exercise recommendations if exercise is 'No'
-    if exercise == 'No':
-        num_exercises_to_recommend = 3
-        recommended_exercises = random.sample(exercises, num_exercises_to_recommend)
-        recommendations.append("Consider trying the following exercises to improve your cardiovascular health:")
-        for exercise_item in recommended_exercises:
-            recommendations.append("- " + exercise_item)
-
-    # Add general health recommendations from recommendations_data
-    num_general_recommendations = 10
-    general_recommendations = recommendations_data.sample(n=num_general_recommendations, replace=True)['Recommendation Description'].tolist()
-    recommendations.extend(general_recommendations)
-
-    # Shuffle the recommendations for variety
-    random.shuffle(recommendations)
-
+        recommendations.append("Improve your diet by reducing processed foods and increasing vegetables.")
+    elif diet == 'Fair':
+        recommendations.append("Your diet could benefit from more whole foods and less sugar.")
+    
+    # Add random general recommendations
+    general_recs = recommendations_data.sample(5)['Recommendation Description'].tolist()
+    recommendations.extend(general_recs)
+    
     return recommendations
-
 
 @app.route('/')
 def welcome():
     return render_template('welcome.html')
 
-
 @app.route('/home')
 def home():
     return render_template('index.html', symptoms_data=symptoms_data)
 
-
 @app.route('/predict', methods=['POST'])
 def predict_heart_disease():
     try:
-        # Extract form data
-        age = int(request.form['age'])
-        sex = request.form['sex']
-        cp = int(request.form['cp'])
-        trestbps = int(request.form['trestbps'])
-        chol = int(request.form['chol'])
-        fbs = int(request.form['fbs'])
-        restecg = int(request.form['restecg'])
-        thalach = int(request.form['thalach'])
-        exang = int(request.form['exang'])
-        oldpeak = float(request.form['oldpeak'])
-        slope = int(request.form['slope'])
-        ca = int(request.form['ca'])
-        thal = int(request.form['thal'])
-        diabetes = request.form['diabetes']
-        exercise = request.form['exercise']
-        diet = request.form['diet']
-    except ValueError:
-        return "Invalid input data. Please make sure all input fields contain numeric values."
-
-    try:
-        # Convert input values to appropriate numeric types
-        sex_numeric = 1 if sex == 'Male' else 0
-        diabetes_numeric = 1 if diabetes == 'Yes' else 0
-        exercise_numeric = 1 if exercise == 'Yes' else 0
-        diet_numeric = 1 if diet == 'Good' else 0
-
-        # Predict heart disease diagnosis
-        prediction = heart_disease_model.predict([[age, sex_numeric, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]])
-        diagnosis = 'Positive' if prediction[0] == 1 else 'Negative'
-
-
-        # Generate personalized recommendations
-        recommendations = generate_recommendations(age, sex, chol, trestbps, diabetes, exercise, diet)
+        # Prepare input features
+        features = {
+            'age': int(request.form['age']),
+            'sex': 1 if request.form['sex'] == 'Male' else 0,
+            'cp': int(request.form['cp']),
+            'trestbps': int(request.form['trestbps']),
+            'chol': int(request.form['chol']),
+            'fbs': int(request.form['fbs']),
+            'restecg': int(request.form['restecg']),
+            'thalach': int(request.form['thalach']),
+            'exang': int(request.form['exang']),
+            'oldpeak': float(request.form['oldpeak']),
+            'slope': int(request.form['slope']),
+            'ca': int(request.form['ca']),
+            'thal': int(request.form['thal'])
+        }
+        
+        # Convert to numpy array in correct order
+        feature_order = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg',
+                        'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
+        input_data = np.array([[features[col] for col in feature_order]])
+        
+        # Get prediction and probability
+        prediction = heart_disease_model.predict(input_data)[0]
+        probability = heart_disease_model.predict_proba(input_data)[0][1]
+        
+        # Generate recommendations
+        recs = generate_recommendations(
+            age=features['age'],
+            sex=request.form['sex'],
+            cholesterol=features['chol'],
+            blood_pressure=features['trestbps'],
+            diabetes=request.form['diabetes'],
+            exercise=request.form['exercise'],
+            diet=request.form['diet']
+        )
+        
+        return render_template('result.html',
+                            diagnosis='Positive' if prediction == 1 else 'Negative',
+                            probability=f"{probability:.1%}",
+                            recommendations=recs)
+    
     except Exception as e:
-        return f"An error occurred during prediction: {str(e)}"
-
-    # Render the result page with diagnosis and recommendations
-    return render_template('result.html', diagnosis=diagnosis, recommendations=recommendations)
-
+        return f"An error occurred: {str(e)}"
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # Use Render's assigned port or default to 5000
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
