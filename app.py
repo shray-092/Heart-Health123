@@ -6,41 +6,23 @@ import os
 
 app = Flask(__name__)
 
-
+# Load the trained model and data
 heart_disease_model = joblib.load('heart_disease_model.sav')
-
-
 recommendations_data = pd.read_csv('recommendations.csv')
-
-
 symptoms_data = pd.read_csv('symptoms.csv')
 
+# Exercise options
 exercises = [
-    "Brisk walking",
-    "Cycling",
-    "Swimming",
-    "Running",
-    "Dancing",
-    "Yoga",
-    "Tai chi",
-    "Pilates",
-    "Jumping rope",
-    "Rowing",
-    "Hiking",
-    "Strength training",
-    "Circuit training",
-    "Aerobic classes",
-    "Kickboxing",
-    "Zumba",
-    "Rock climbing",
-    "Squats",
-    "Push-ups",
-    "Sit-ups"
+    "Brisk walking", "Cycling", "Swimming", "Running", "Dancing", "Yoga", "Tai chi",
+    "Pilates", "Jumping rope", "Rowing", "Hiking", "Strength training", "Circuit training",
+    "Aerobic classes", "Kickboxing", "Zumba", "Rock climbing", "Squats", "Push-ups", "Sit-ups"
 ]
 
+# Function to generate personalized health recommendations
 def generate_recommendations(age, sex, cholesterol, blood_pressure, diabetes, exercise, diet):
     recommendations = []
 
+    # Age-related recommendations
     if age > 50:
         recommendations.append("Consider regular screenings for heart disease due to increased risk with age.")
     if sex == 'Male':
@@ -56,28 +38,32 @@ def generate_recommendations(age, sex, cholesterol, blood_pressure, diabetes, ex
     if diet == 'Poor':
         recommendations.append("A healthy diet is crucial for preventing heart disease; consider reducing intake of processed foods and sugar.")
 
-    
-        recommendations.append("Start by making small changes to your diet, such as swapping out sugary drinks for water or adding more vegetables to your meals.")
-        if cholesterol > 200:
-            recommendations.append("Choose heart-healthy fats like those found in avocados, nuts, and olive oil instead of saturated or trans fats.")
-        if blood_pressure > 120:
-            recommendations.append("Incorporate more potassium-rich foods like bananas, sweet potatoes, and leafy greens into your diet to help lower blood pressure.")
-        if diabetes == 'Yes':
-            recommendations.append("Focus on portion control and carbohydrate counting to manage blood sugar levels effectively, and consider meeting with a certified diabetes educator for personalized guidance.")
-        recommendations.append("Include more fiber-rich foods in your diet such as whole grains, legumes, fruits, and vegetables to support digestive health and lower the risk of heart disease.")
-        recommendations.append("Opt for lean protein sources like poultry, fish, tofu, and beans instead of processed and red meats, which can help reduce the risk of heart disease.")
-        recommendations.append("Incorporate foods rich in antioxidants such as berries, leafy greens, and dark chocolate into your diet to help protect against oxidative stress and inflammation.")
-        recommendations.append("Include foods high in omega-3 fatty acids such as flaxseeds, chia seeds, and walnuts, which can help reduce inflammation and lower the risk of heart disease.")
-        recommendations.append("Swap out refined grains for whole grains whenever possible, such as choosing whole wheat bread instead of white bread and brown rice instead of white rice.")
-        recommendations.append("Experiment with different herbs and spices to add flavor to your meals without relying on excess salt, which can contribute to high blood pressure.")
+    # Diet-related suggestions
+    recommendations.append("Start by making small changes to your diet, such as swapping out sugary drinks for water or adding more vegetables to your meals.")
+    if cholesterol > 200:
+        recommendations.append("Choose heart-healthy fats like those found in avocados, nuts, and olive oil instead of saturated or trans fats.")
+    if blood_pressure > 120:
+        recommendations.append("Incorporate more potassium-rich foods like bananas, sweet potatoes, and leafy greens into your diet to help lower blood pressure.")
+    if diabetes == 'Yes':
+        recommendations.append("Focus on portion control and carbohydrate counting to manage blood sugar levels effectively, and consider meeting with a certified diabetes educator for personalized guidance.")
+    recommendations.append("Include more fiber-rich foods in your diet such as whole grains, legumes, fruits, and vegetables to support digestive health and lower the risk of heart disease.")
+    recommendations.append("Opt for lean protein sources like poultry, fish, tofu, and beans instead of processed and red meats, which can help reduce the risk of heart disease.")
+    recommendations.append("Incorporate foods rich in antioxidants such as berries, leafy greens, and dark chocolate into your diet to help protect against oxidative stress and inflammation.")
+    recommendations.append("Include foods high in omega-3 fatty acids such as flaxseeds, chia seeds, and walnuts, which can help reduce inflammation and lower the risk of heart disease.")
+    recommendations.append("Swap out refined grains for whole grains whenever possible, such as choosing whole wheat bread instead of white bread and brown rice instead of white rice.")
+    recommendations.append("Experiment with different herbs and spices to add flavor to your meals without relying on excess salt, which can contribute to high blood pressure.")
 
- 
+    # Age-related activity suggestions
     if age >= 60:
         recommendations.append("Consider joining a local walking group or fitness class for seniors to stay active and socialize with others in your age group.")
+
+    # Gender-specific recommendations
     if sex == 'Male':
         recommendations.append("Stay connected with friends and family members for emotional support, and don't hesitate to reach out if you need help or someone to talk to.")
     elif sex == 'Female':
         recommendations.append("Take time for yourself and prioritize self-care activities such as journaling, meditation, or enjoying a warm bath.")
+
+    # Additional health suggestions
     if cholesterol > 220:
         recommendations.append("Work with a dietitian to develop personalized meal plans and recipes that meet your nutritional needs and support heart health.")
     if blood_pressure > 140:
@@ -87,34 +73,39 @@ def generate_recommendations(age, sex, cholesterol, blood_pressure, diabetes, ex
     if exercise == 'Yes' and diet == 'Fair':
         recommendations.append("Continue to prioritize regular exercise and a balanced diet, as these are essential components of heart disease prevention and management.")
 
-    
+    # Exercise recommendations if exercise is 'No'
     if exercise == 'No':
-        num_exercises_to_recommend = 3 
+        num_exercises_to_recommend = 3
         recommended_exercises = random.sample(exercises, num_exercises_to_recommend)
         recommendations.append("Consider trying the following exercises to improve your cardiovascular health:")
-        for exercise in recommended_exercises:
-            recommendations.append("- " + exercise)
+        for exercise_item in recommended_exercises:
+            recommendations.append("- " + exercise_item)
 
-
-    num_general_recommendations = 10  
+    # Add general health recommendations from recommendations_data
+    num_general_recommendations = 10
     general_recommendations = recommendations_data.sample(n=num_general_recommendations, replace=True)['Recommendation Description'].tolist()
     recommendations.extend(general_recommendations)
 
+    # Shuffle the recommendations for variety
     random.shuffle(recommendations)
 
     return recommendations
+
 
 @app.route('/')
 def welcome():
     return render_template('welcome.html')
 
+
 @app.route('/home')
 def home():
     return render_template('index.html', symptoms_data=symptoms_data)
 
+
 @app.route('/predict', methods=['POST'])
 def predict_heart_disease():
     try:
+        # Extract form data
         age = int(request.form['age'])
         sex = request.form['sex']
         cp = int(request.form['cp'])
@@ -135,21 +126,26 @@ def predict_heart_disease():
         return "Invalid input data. Please make sure all input fields contain numeric values."
 
     try:
-        
+        # Convert input values to appropriate numeric types
         sex_numeric = 1 if sex == 'Male' else 0
         diabetes_numeric = 1 if diabetes == 'Yes' else 0
         exercise_numeric = 1 if exercise == 'Yes' else 0
         diet_numeric = 1 if diet == 'Good' else 0
-        
+
+        # Predict heart disease diagnosis
         prediction = heart_disease_model.predict([[age, sex_numeric, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]])
-        diagnosis = 'Positive' if prediction else 'Negative'
+        diagnosis = 'Positive' if prediction[0] == 1 else 'Negative'
+
+
+        # Generate personalized recommendations
         recommendations = generate_recommendations(age, sex, chol, trestbps, diabetes, exercise, diet)
     except Exception as e:
         return f"An error occurred during prediction: {str(e)}"
 
+    # Render the result page with diagnosis and recommendations
     return render_template('result.html', diagnosis=diagnosis, recommendations=recommendations)
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Use Render's assigned port or default to 5000
     app.run(host="0.0.0.0", port=port)
-   
